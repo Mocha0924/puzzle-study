@@ -19,6 +19,21 @@ public class PlayerController : MonoBehaviour
     [SerializeField ]BoadController boardController = default!;
     Vector2Int _position;
     RotState _rotate = RotState.Up;
+    AnimationController _animationController = new AnimationController();
+    Vector2Int _last_poaition;
+    RotState _last_rotate = RotState.Up;
+    const float TRANS_TIME = 0.05f;
+    const float ROT_TIME = 0.05f;
+    void SetTransition(Vector2Int pos,RotState rot,float time)
+    {
+        _last_poaition = _position;
+        _last_rotate = _rotate;
+
+        _position = pos;
+        _rotate = rot;
+
+        _animationController.Set(time);
+    }
     void Start()
     {
         _puyoController[0].SetPuyoType(PuyoType.Green);
@@ -49,11 +64,8 @@ public class PlayerController : MonoBehaviour
         Vector2Int pos = _position + (is_right ? Vector2Int.right:Vector2Int.left);
         if(!CanMove(pos,_rotate)) return false;
 
-        _position = pos;
 
-        _puyoController[0].SetPos(new Vector3((float)_position.x, (float)_position.y, 0.0f));
-        Vector2Int posChild = CalcChildPuyoPos(_position, _rotate);
-        _puyoController[1].SetPos(new Vector3((float)posChild.x, (float)posChild.y, 0.0f));
+        SetTransition(pos,_rotate,TRANS_TIME);
 
         return true;
     }
@@ -83,11 +95,7 @@ public class PlayerController : MonoBehaviour
                 break;
         }
         if (!CanMove(_position,_rotate)) return false;
-        _position = pos;
-        _rotate = rot;
-        _puyoController[0].SetPos(new Vector3((float)_position.x, (float)_position.y, 0.0f));
-        Vector2Int posChild = CalcChildPuyoPos(_position, _rotate);
-        _puyoController[1].SetPos(new Vector3((float)posChild.x, (float)posChild.y, 0.0f));
+        SetTransition(pos, rot,ROT_TIME);
         return true;
     }
     void QuickDrop()
@@ -107,25 +115,53 @@ public class PlayerController : MonoBehaviour
     }
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.RightArrow))
+        if(!_animationController.Update(Time.deltaTime))
         {
-            Translate(true);
+            Control();
+        }
+        float animu_rate = _animationController.GetNormalized();
+        _puyoController[0].SetPos(Interpolate(_position, RotState.Invalid, _last_poaition, RotState.Invalid, animu_rate));
+        _puyoController[1].SetPos(Interpolate(_position,_rotate,_last_poaition,_last_rotate,animu_rate));
+    }
+    void Control()
+    {
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            if(Translate(true))return;
         }
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            Translate(false);
+            if(Translate(false))return;
         }
         if (Input.GetKeyDown(KeyCode.X))
         {
-            Rotate(true);
+            if(Rotate(true))return;
         }
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            Rotate(false);
+            if(Rotate(false))return;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
             QuickDrop();
         }
+    }
+    static Vector3 Interpolate(Vector2Int pos,RotState rot,Vector2Int pos_last,RotState rot_last,float rate)
+    {
+        Vector3 p = Vector3.Lerp(
+            new Vector3((float)pos.x, (float)pos.y, 0.0f),
+            new Vector3((float)pos_last.x, (float)pos_last.y, 0.0f), rate);
+
+        if (rot == RotState.Invalid) return p;
+        float theta0 = 0.5f * Mathf.PI * (float)(int)rot;
+        float theta1 = 0.5f * Mathf.PI * (float)(int)rot_last;
+        float theta = theta1 - theta0;
+
+        if (+Mathf.PI < theta) theta = theta - 2.0f * Mathf.PI;
+        if (theta < -Mathf.PI) theta = theta + 2.0f * Mathf.PI;
+
+        theta = theta0 + rate * theta;
+
+        return p + new Vector3(Mathf.Sin(theta), Mathf.Cos(theta),0.0f);
     }
 }
