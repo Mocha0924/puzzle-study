@@ -121,7 +121,7 @@ public class PlayerController : MonoBehaviour
                 Debug.Assert(false);
                 break;
         }
-        if (!CanMove(_position, _rotate)) return false;
+        if (!CanMove(pos, rot)) return false;
         SetTransition(pos, rot, ROT_TIME);
         return true;
     }
@@ -194,6 +194,20 @@ public class PlayerController : MonoBehaviour
             QuickDrop();
         }
     }
+    
+   
+   
+    void FixedUpdate()
+    {
+     
+      
+            Control();
+
+        Vector3 dy = Vector3.up * (float)_fallCount / (float)FALL_COUNT_UNNIT;
+        float anim_rate = _animationController.GetNormalized();
+        _puyoController[0].SetPos(dy+Interpolate(_position, RotState.Invalid, _last_poaition, RotState.Invalid, anim_rate));
+        _puyoController[1].SetPos(dy+Interpolate(_position, _rotate, _last_poaition, _last_rotate, anim_rate));
+    }
     static Vector3 Interpolate(Vector2Int pos, RotState rot, Vector2Int pos_last, RotState rot_last, float rate)
     {
         Vector3 p = Vector3.Lerp(
@@ -211,18 +225,5 @@ public class PlayerController : MonoBehaviour
         theta = theta0 + rate * theta;
 
         return p + new Vector3(Mathf.Sin(theta), Mathf.Cos(theta), 0.0f);
-    }
-   
-   
-    void FixedUpdate()
-    {
-     
-      
-            Control();
-
-        Vector3 dy = Vector3.up * (float)_fallCount / (float)FALL_COUNT_UNNIT;
-        float anim_rate = _animationController.GetNormalized();
-        _puyoController[0].SetPos(Interpolate(_position, RotState.Invalid, _last_poaition, RotState.Invalid, anim_rate));
-        _puyoController[1].SetPos(Interpolate(_position, _rotate, _last_poaition, _last_rotate, anim_rate));
     }
 }

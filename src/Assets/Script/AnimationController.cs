@@ -6,7 +6,6 @@ using UnityEngine;
 public class AnimationController
 {
     // Start is called before the first frame update
-    const float DELTA_TIME_MAX = 1.0f;
     int _time = 0;
     float _inv_time_max = 1.0f;
   public void Set(int max_time)
