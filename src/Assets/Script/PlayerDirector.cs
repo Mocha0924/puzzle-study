@@ -1,15 +1,40 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerDirector : MonoBehaviour
 {
+    interface IState
+    {
+        public enum E_State
+        {
+            Control = 0,
+            GameOver = 1,
+
+            MAX,
+
+            UnChanged,
+
+        }
+
+        E_State Initialize(PlayerDirector parent);
+
+        E_State Update(PlayerDirector parent);
+    }
+
     // Start is called before the first frame update
     [SerializeField] GameObject player = default!;
     PlayerController _playerController = null;
     LogialInput _logicalInput = new();
     NextQueue _nextQueue = new();
-    [SerializeField]PuyoPair[] nextPuyoPairs = {default!,default!};
+    [SerializeField] PuyoPair[] nextPuyoPairs = { default!, default! };
+    IState.E_State _current_state = IState.E_State.Control;
+    static readonly IState[] states = new IState[(int)IState.E_State.MAX]
+     {
+         new ControlState(),
+         new GameoverState(),
+     };
 
     void Start()
     {
@@ -18,6 +43,7 @@ public class PlayerDirector : MonoBehaviour
         _playerController.setLogicalInput(_logicalInput);
 
         _nextQueue.Initialize();
+        InitializeState();
         Spawn(_nextQueue.Update());
         UpdateNextsView();
     }
@@ -53,6 +79,7 @@ public class PlayerDirector : MonoBehaviour
     void FixedUpdate()
     {
         UpdateInput();
+        UpdateState();
         if(!player.activeSelf)
         {
             Spawn(_nextQueue.Update());
@@ -60,4 +87,56 @@ public class PlayerDirector : MonoBehaviour
         }
     }
     bool Spawn(Vector2Int next) => _playerController.Spawn((PuyoType)next[0], (PuyoType)next[1]);
+
+    class ControlState : IState
+    {
+        public IState.E_State Initialize(PlayerDirector parent)
+        {
+            if(!parent.Spawn(parent._nextQueue.Update()))
+                return IState.E_State.GameOver;
+
+            parent.UpdateNextsView();
+            return IState.E_State.UnChanged;
+            
+        }
+        public IState.E_State Update(PlayerDirector parent)
+        {
+            return parent.player.activeSelf ?IState.E_State.UnChanged :IState.E_State.Control;
+        }
+    }
+    class GameoverState : IState
+    {
+        public IState.E_State Initialize(PlayerDirector parent)
+        {
+            SceneManager.LoadScene(0);
+            return IState.E_State.UnChanged;
+        }
+        public IState.E_State Update(PlayerDirector parent)
+        {
+            return IState.E_State.UnChanged;
+        }
+    }
+    void InitializeState()
+    {
+        Debug.Assert(condition: _current_state is >= 0 and < IState.E_State.MAX);
+        var next_state = states[(int)_current_state].Initialize(this);
+
+        if (next_state != IState.E_State.UnChanged)
+        {
+            _current_state = next_state;
+            InitializeState();
+        }
+    }
+    void UpdateState()
+    {
+        Debug.Assert(condition: _current_state is >= 0 and < IState.E_State.MAX);
+        var next_state = states[(int)_current_state].Update(this);
+        if (next_state != IState.E_State.UnChanged)
+        {
+            _current_state = next_state;
+            InitializeState();
+        }
+    }
 }
+
+
