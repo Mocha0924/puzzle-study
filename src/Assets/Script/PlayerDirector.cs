@@ -11,6 +11,7 @@ public class PlayerDirector : MonoBehaviour
         {
             Control = 0,
             GameOver = 1,
+            Falling = 2,
 
             MAX,
 
@@ -28,17 +29,20 @@ public class PlayerDirector : MonoBehaviour
     PlayerController _playerController = null;
     LogialInput _logicalInput = new();
     NextQueue _nextQueue = new();
+    BoadController _boardController = default!;
     [SerializeField] PuyoPair[] nextPuyoPairs = { default!, default! };
-    IState.E_State _current_state = IState.E_State.Control;
+    IState.E_State _current_state = IState.E_State.Falling;
     static readonly IState[] states = new IState[(int)IState.E_State.MAX]
      {
          new ControlState(),
          new GameoverState(),
+         new FallingState(),
      };
 
     void Start()
     {
         _playerController = player.GetComponent<PlayerController>();
+        _boardController = GetComponent<BoadController>();
         _logicalInput.Clear();
         _playerController.setLogicalInput(_logicalInput);
 
@@ -101,7 +105,7 @@ public class PlayerDirector : MonoBehaviour
         }
         public IState.E_State Update(PlayerDirector parent)
         {
-            return parent.player.activeSelf ?IState.E_State.UnChanged :IState.E_State.Control;
+            return parent.player.activeSelf ?IState.E_State.UnChanged :IState.E_State.Falling;
         }
     }
     class GameoverState : IState
@@ -114,6 +118,17 @@ public class PlayerDirector : MonoBehaviour
         public IState.E_State Update(PlayerDirector parent)
         {
             return IState.E_State.UnChanged;
+        }
+    }
+    class FallingState : IState
+    {
+        public IState.E_State Initialize(PlayerDirector parent)
+        {
+            return parent._boardController.CheckFall() ? IState.E_State.UnChanged : IState.E_State.Control;
+        }
+        public IState.E_State Update(PlayerDirector parent)
+        {
+            return parent._boardController.Fall() ? IState.E_State.UnChanged : IState.E_State.Control;
         }
     }
     void InitializeState()
