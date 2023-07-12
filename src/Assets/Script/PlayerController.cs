@@ -14,7 +14,6 @@ public class PlayerController : MonoBehaviour
 
         Invalid = -1,
     }
-
     const int FALL_COUNT_UNNIT = 120;
     const int FALL_COUNT_SPD = 10;
     const int FALL_COUNT_FAST_SPD = 20;

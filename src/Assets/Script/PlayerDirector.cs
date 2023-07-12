@@ -3,27 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+interface IState
+{
+    public enum E_State
+    {
+        Control = 0,
+        GameOver = 1,
+        Falling = 2,
+        Erasing = 3,
+
+        MAX,
+
+        UnChanged,
+
+    }
+    E_State Initialize(PlayerDirector parent);
+
+    E_State Update(PlayerDirector parent);
+}
+[RequireComponent(typeof(BoadController))]
 public class PlayerDirector : MonoBehaviour
 {
-    interface IState
-    {
-        public enum E_State
-        {
-            Control = 0,
-            GameOver = 1,
-            Falling = 2,
-
-            MAX,
-
-            UnChanged,
-
-        }
-
-        E_State Initialize(PlayerDirector parent);
-
-        E_State Update(PlayerDirector parent);
-    }
-
+   
     // Start is called before the first frame update
     [SerializeField] GameObject player = default!;
     PlayerController _playerController = null;
@@ -37,6 +38,7 @@ public class PlayerDirector : MonoBehaviour
          new ControlState(),
          new GameoverState(),
          new FallingState(),
+         new ErasingState(),
      };
 
     void Start()
@@ -84,11 +86,7 @@ public class PlayerDirector : MonoBehaviour
     {
         UpdateInput();
         UpdateState();
-        if(!player.activeSelf)
-        {
-            Spawn(_nextQueue.Update());
-            UpdateNextsView();
-        }
+       
     }
     bool Spawn(Vector2Int next) => _playerController.Spawn((PuyoType)next[0], (PuyoType)next[1]);
 
@@ -124,11 +122,22 @@ public class PlayerDirector : MonoBehaviour
     {
         public IState.E_State Initialize(PlayerDirector parent)
         {
-            return parent._boardController.CheckFall() ? IState.E_State.UnChanged : IState.E_State.Control;
+            return parent._boardController.CheckFall() ? IState.E_State.UnChanged : IState.E_State.Erasing;
         }
         public IState.E_State Update(PlayerDirector parent)
         {
-            return parent._boardController.Fall() ? IState.E_State.UnChanged : IState.E_State.Control;
+            return parent._boardController.Fall() ? IState.E_State.UnChanged : IState.E_State.Erasing;
+        }
+    }
+    class ErasingState : IState
+    {
+        public IState.E_State Initialize(PlayerDirector parent)
+        {
+            return parent._boardController.CheckErase() ? IState.E_State.UnChanged : IState.E_State.Control;
+        }
+        public IState.E_State Update(PlayerDirector parent)
+        {
+            return parent._boardController.Erase() ? IState.E_State.UnChanged : IState.E_State.Falling;
         }
     }
     void InitializeState()
