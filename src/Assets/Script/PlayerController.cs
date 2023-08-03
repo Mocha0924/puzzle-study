@@ -31,6 +31,7 @@ public class PlayerController : MonoBehaviour
     const int TRANS_TIME = 3;
     const int ROT_TIME =   3;
     LogialInput _logicalInput = new();
+    uint _additiveScore = 0;
     void SetTransition(Vector2Int pos, RotState rot, int time)
     {
         _last_poaition = _position;
@@ -148,9 +149,9 @@ public class PlayerController : MonoBehaviour
       
         Settle();
     }
-   bool Fall(bool is_fall)
+   bool Fall(bool is_fast)
     {
-        _fallCount -= is_fall ? FALL_COUNT_FAST_SPD:FALL_COUNT_SPD;
+        _fallCount -= is_fast ? FALL_COUNT_FAST_SPD:FALL_COUNT_SPD;
         while(_fallCount < 0)
         {
             if(!CanMove(_position + Vector2Int.down, _rotate))
@@ -164,6 +165,7 @@ public class PlayerController : MonoBehaviour
             _last_poaition += Vector2Int.down;
             _fallCount += FALL_COUNT_UNNIT;
         }
+        if (is_fast) _additiveScore++;
         return true;
     }
     void Control()
@@ -224,5 +226,12 @@ public class PlayerController : MonoBehaviour
         theta = theta0 + rate * theta;
 
         return p + new Vector3(Mathf.Sin(theta), Mathf.Cos(theta), 0.0f);
+    }
+    public uint popScore()
+    {
+        uint score = _additiveScore;
+        _additiveScore = 0;
+
+        return score;
     }
 }

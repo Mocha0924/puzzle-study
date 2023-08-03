@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 interface IState
 {
@@ -26,6 +27,9 @@ public class PlayerDirector : MonoBehaviour
 {
    
     // Start is called before the first frame update
+    [SerializeField] TextMeshProUGUI TextScore = default!;
+    uint _score = 0;
+    int _chainCount = -1;
     [SerializeField] GameObject player = default!;
     PlayerController _playerController = null;
     LogialInput _logicalInput = new();
@@ -85,8 +89,12 @@ public class PlayerDirector : MonoBehaviour
     void FixedUpdate()
     {
         UpdateInput();
+
         UpdateState();
-       
+
+        AddScore(_playerController.popScore());
+        AddScore(_boardController.popScore());
+
     }
     bool Spawn(Vector2Int next) => _playerController.Spawn((PuyoType)next[0], (PuyoType)next[1]);
 
@@ -133,8 +141,14 @@ public class PlayerDirector : MonoBehaviour
     {
         public IState.E_State Initialize(PlayerDirector parent)
         {
-            return parent._boardController.CheckErase() ? IState.E_State.UnChanged : IState.E_State.Control;
+            if(parent._boardController.CheckErase(parent._chainCount++))
+            {
+                return IState.E_State.UnChanged;
+            }
+            parent._chainCount = 0;
+            return IState.E_State.Control;
         }
+       
         public IState.E_State Update(PlayerDirector parent)
         {
             return parent._boardController.Erase() ? IState.E_State.UnChanged : IState.E_State.Falling;
@@ -160,6 +174,15 @@ public class PlayerDirector : MonoBehaviour
             _current_state = next_state;
             InitializeState();
         }
+    }
+    void SetScore(uint score)
+    {
+        _score = score;
+        TextScore.text = _score.ToString();
+    }
+    void AddScore(uint score)
+    {
+        if(0<score)SetScore(_score + score);
     }
 }
 
